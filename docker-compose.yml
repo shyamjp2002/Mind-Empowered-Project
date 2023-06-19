@@ -1,0 +1,55 @@
+version: '3'
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 5000
+    depends_on:
+      - database
+      - logging
+    environment:
+      - DATABASE_URL=postgresql://postgres:Sathyam!18@database:5432/postgres
+    deploy:
+      replicas: 3
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: backend
+
+  database:
+    image: postgres:latest
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Sathyam!18
+      - POSTGRES_DB=postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+  logging:
+    image: graylog/graylog:4.1
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
+    expose:
+      - "12201/udp"
+    ports:
+      - 9000:9000
+      - 12201:12201
+      - 1514:1514
+
+volumes:
+  postgres-data:
